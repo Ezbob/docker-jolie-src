@@ -39,7 +39,7 @@ public class JolieDocker extends JavaService {
             };
         }
 
-        DockerExecutor.RunResults results = docker.executeDocker(args);
+        DockerExecutor.RunResults results = docker.executeDocker(false, args);
 
         if ( !results.getStderr().isEmpty() ) {
             response.setFirstChild("stderr", results.getStderr());
@@ -64,7 +64,7 @@ public class JolieDocker extends JavaService {
         StringBuilder stderr = new StringBuilder();
         DockerExecutor.RunResults results;
 
-        results = docker.executeDocker( "stop", containerName );
+        results = docker.executeDocker(false, "stop", containerName );
 
         if ( !results.getStdout().isEmpty() ) {
             stdout.append( results.getStdout() );
@@ -76,7 +76,7 @@ public class JolieDocker extends JavaService {
 
         exitCode = results.getExitCode();
 
-        results = docker.executeDocker( "rm", containerName );
+        results = docker.executeDocker(false, "rm", containerName );
 
         if ( !results.getStdout().isEmpty() ) {
             stdout.append( results.getStdout() );
@@ -103,7 +103,7 @@ public class JolieDocker extends JavaService {
         Value response = Value.create();
         String containerName = request.strValue();
 
-        DockerExecutor.RunResults results = docker.executeDocker(
+        DockerExecutor.RunResults results = docker.executeDocker( false,
                 "inspect",
                 "--format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'",
                 containerName
