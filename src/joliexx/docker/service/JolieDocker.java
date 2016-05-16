@@ -98,9 +98,26 @@ public class JolieDocker extends JavaService {
     }
 
     @RequestResponse
-    public Value getSandboxIP( Value request ) {
+    public Value getSandboxIP( Value request ) throws FaultException {
 
-        return null;
+        Value response = Value.create();
+        String containerName = request.strValue();
+
+        DockerExecutor.RunResults results = docker.executeDocker(
+                "inspect",
+                "--format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'",
+                containerName
+        );
+
+        if ( !results.getStdout().isEmpty() ) {
+            response.setFirstChild("ipAddress", results.getStdout());
+        }
+
+        if ( !results.getStderr().isEmpty() ) {
+            response.setFirstChild("error", results.getStderr());
+        }
+
+        return response;
     }
 
 }
