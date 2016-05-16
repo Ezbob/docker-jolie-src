@@ -40,17 +40,20 @@ public class DockerExecutor {
         }
     }
 
+    private String[] prependArg(String arg, String[] args) {
+        String[] extendedArgs = new String[args.length + 1];
+
+        System.arraycopy(args, 0, extendedArgs, 1, args.length);
+        extendedArgs[0] = arg;
+
+        return extendedArgs;
+    }
+
     public RunResults executeDocker(String... args) throws FaultException {
 
         try {
-
-            String[] execArgs = new String[args.length + 1];
-
-            System.arraycopy(args, 0, execArgs, 1, args.length);
-            execArgs[0] = DOCKER_INVOCATION;
-
             Process process = new ProcessBuilder(
-                    execArgs
+                    prependArg( DOCKER_INVOCATION, args )
             ).start();
 
             try {
