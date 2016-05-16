@@ -55,8 +55,8 @@ public class DockerExecutor {
 
             try {
 
-                return new RunResults( readStream(process.getInputStream(), false),
-                        readStream(process.getErrorStream(), true), process.waitFor() );
+                return new RunResults( readStream(process.getInputStream(), false, false),
+                        readStream(process.getErrorStream(), true, false), process.waitFor() );
 
             } catch (InterruptedException interruptedException) {
 
@@ -68,7 +68,7 @@ public class DockerExecutor {
         }
     }
 
-    private static String readStream(@NotNull InputStream stream, Boolean isErrorStream ) throws IOException {
+    private static String readStream(@NotNull InputStream stream, Boolean isErrorStream, Boolean printOut ) throws IOException {
         StringBuilder result = new StringBuilder();
         String line;
 
@@ -76,10 +76,12 @@ public class DockerExecutor {
         while ( ( line = reader.readLine() ) != null ) {
             result.append(line);
 
-            if ( isErrorStream ) {
-                System.err.println( line );
-            } else {
-                System.out.println( line );
+            if ( printOut ) {
+                if ( isErrorStream ) {
+                    System.err.println( line );
+                } else {
+                    System.out.println( line );
+                }
             }
         }
         return result.toString() + System.lineSeparator();
