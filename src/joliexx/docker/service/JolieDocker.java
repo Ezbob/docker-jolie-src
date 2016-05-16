@@ -66,32 +66,31 @@ public class JolieDocker extends JavaService {
 
         results = docker.executeDocker(false, "stop", containerName );
 
-        if ( !results.getStdout().isEmpty() ) {
-            stdout.append( results.getStdout() );
-        }
-
-        if ( !results.getStderr().isEmpty() ) {
-            stderr.append( results.getStderr() );
-        }
+        stdout.append( results.getStdout() );
+        stderr.append( results.getStderr() );
 
         exitCode = results.getExitCode();
 
         results = docker.executeDocker(false, "rm", containerName );
 
-        if ( !results.getStdout().isEmpty() ) {
-            stdout.append( results.getStdout() );
-        }
 
-        if ( !results.getStderr().isEmpty() ) {
-            stderr.append( results.getStderr() );
-        }
+        stdout.append(System.lineSeparator());
+        stdout.append( results.getStdout() );
+
+        stderr.append(System.lineSeparator());
+        stderr.append( results.getStderr() );
 
         if ( exitCode == 0 && results.getExitCode() != 0 ) {
             exitCode = results.getExitCode();
         }
 
-        response.setFirstChild("stderr", stderr.toString());
-        response.setFirstChild("stdout", stdout.toString());
+        if ( !stdout.toString().trim().isEmpty() ) {
+            response.setFirstChild("stdout", stdout.toString());
+        }
+
+        if ( !stderr.toString().trim().isEmpty() ) {
+            response.setFirstChild("stderr", stderr.toString());
+        }
         response.setFirstChild("exitCode", exitCode);
 
         return response;

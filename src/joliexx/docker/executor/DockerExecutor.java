@@ -87,7 +87,7 @@ public class DockerExecutor {
                 }
             }
         }
-        return result.toString() + System.lineSeparator();
+        return result.toString().trim();
     }
 
 }
