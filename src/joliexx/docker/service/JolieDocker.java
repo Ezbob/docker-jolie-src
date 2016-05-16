@@ -73,11 +73,10 @@ public class JolieDocker extends JavaService {
 
         results = docker.executeDocker(false, "rm", containerName );
 
-
-        stdout.append(System.lineSeparator());
+        stdout.append( System.lineSeparator() );
         stdout.append( results.getStdout() );
 
-        stderr.append(System.lineSeparator());
+        stderr.append( System.lineSeparator() );
         stderr.append( results.getStderr() );
 
         if ( exitCode == 0 && results.getExitCode() != 0 ) {
@@ -108,11 +107,11 @@ public class JolieDocker extends JavaService {
                 containerName
         );
 
-        if ( !results.getStdout().isEmpty() ) {
+        if ( !results.getStdout().trim().isEmpty() ) {
             response.setFirstChild("ipAddress", results.getStdout());
         }
 
-        if ( !results.getStderr().isEmpty() ) {
+        if ( !results.getStderr().trim().isEmpty() ) {
             response.setFirstChild("error", results.getStderr());
         }
 
