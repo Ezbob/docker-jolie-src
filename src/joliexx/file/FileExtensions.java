@@ -6,6 +6,7 @@ import jolie.runtime.Value;
 import jolie.runtime.embedding.RequestResponse;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,39 +24,20 @@ public class FileExtensions extends JavaService {
 
         if ( srcFile.isFile() ) {
 
-            Path destPath;
-            try {
-                destPath = Paths.get(dest).toAbsolutePath().normalize(); // check whether dest path is valid
-            } catch ( InvalidPathException invalidPath ) {
-                throw new FaultException( invalidPath );
+            if ( !srcFile.exists() ) {
+                throw new FaultException( new FileNotFoundException( "Source not found" ) );
             }
 
-            BufferedReader fileReader;
+            FileOutputStream destinationStream;
 
             try {
-                fileReader = new BufferedReader( new FileReader( srcFile ) );
+                destinationStream = new FileOutputStream( new File( dest ) );
             } catch ( FileNotFoundException fnfe ) {
                 throw new FaultException( fnfe );
             }
 
-            BufferedWriter fileWriter;
-
             try {
-                fileWriter = new BufferedWriter( new FileWriter( destPath.toString() ) );
-            } catch ( IOException ioe ) {
-                throw new FaultException(ioe);
-            }
-
-            try {
-                String lineIn;
-                while ( ( lineIn = fileReader.readLine() ) != null ) {
-                    fileWriter.write( lineIn + System.lineSeparator() );
-                }
-
-                fileWriter.flush();
-
-                fileReader.close();
-                fileWriter.close();
+                Files.copy( srcFile.toPath(), destinationStream );
 
             } catch ( IOException ioe ) {
                 throw new FaultException( ioe );
