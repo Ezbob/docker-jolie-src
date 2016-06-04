@@ -8,6 +8,7 @@ import jolie.runtime.embedding.RequestResponse;
 import joliexx.docker.executor.DockerExecutor;
 
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class JolieDocker extends JavaService {
 
@@ -21,23 +22,28 @@ public class JolieDocker extends JavaService {
         Integer port = request.getFirstChild( "port" ).intValue();
         Boolean detach = request.getFirstChild( "detach" ).boolValue();
 
-        String mountPoint = Paths.get( fileName ).toAbsolutePath().getParent().toString();
+        String mountPoint = Paths.get( fileName ).toAbsolutePath().normalize().getParent().toString();
         String nameOnly = Paths.get( fileName ).getFileName().toString();
+
+        System.out.println(" mountpoint " + mountPoint);
+        System.out.println(" name " + nameOnly);
 
         String[] args;
 
         if ( detach ) {
             args = new String[] { "run", "-id", "--read-only", "--volume", mountPoint + ":/home/jolie:ro",
                     "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
-                    "ezbob/jolie:0.1.1", nameOnly };
+                    "ezbob/jolie:latest", nameOnly };
 
         } else {
             args = new String[] {
                     "run", "-i", "--rm", "--read-only", "--volume", mountPoint + ":/home/jolie:ro",
                     "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
-                    "ezbob/jolie:0.1.1", nameOnly
+                    "ezbob/jolie:latest", nameOnly
             };
         }
+
+        System.out.println(Arrays.toString(args));
 
         DockerExecutor.RunResults results = docker.executeDocker(false, args);
 
