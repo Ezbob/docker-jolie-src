@@ -43,6 +43,8 @@ public class FileExtensions extends JavaService {
                 throw new FaultException( ioe );
             }
 
+            result.setValue(Paths.get(dest).toAbsolutePath().normalize().toString());
+
         } else {
             throw new FaultException( new IOException( "source is not a file" ) );
         }
