@@ -36,9 +36,6 @@ public class JolieDocker extends JavaService {
         String mountPoint = Paths.get( fileName ).toAbsolutePath().normalize().getParent().toString();
         String nameOnly = Paths.get( fileName ).getFileName().toString();
 
-        System.out.println(" mountpoint " + mountPoint);
-        System.out.println(" name " + nameOnly);
-
         String[] args;
 
         if ( detach ) {
@@ -53,8 +50,6 @@ public class JolieDocker extends JavaService {
                     "ezbob/jolie:latest", nameOnly
             };
         }
-
-        System.out.println(Arrays.toString(args));
 
         DockerExecutor.RunResults results = docker.executeDocker(false, args);
 
@@ -83,18 +78,18 @@ public class JolieDocker extends JavaService {
 
         results = docker.executeDocker(false, "stop", containerName );
 
-        stdout.append( results.getStdout() );
-        stderr.append( results.getStderr() );
+        stdout.append( results.getStdout().trim() );
+        stderr.append( results.getStderr().trim() );
 
         exitCode = results.getExitCode();
 
         results = docker.executeDocker(false, "rm", containerName );
 
         stdout.append( System.lineSeparator() );
-        stdout.append( results.getStdout() );
+        stdout.append( results.getStdout().trim() );
 
         stderr.append( System.lineSeparator() );
-        stderr.append( results.getStderr() );
+        stderr.append( results.getStderr().trim() );
 
         if ( exitCode == 0 && results.getExitCode() != 0 ) {
             exitCode = results.getExitCode();
@@ -140,11 +135,11 @@ public class JolieDocker extends JavaService {
             ValueVector vec = response.getChildren("ports");
 
             for ( int i = 0; i < ports.length; i++ ) {
-                vec.add( Value.create( ports[i] ) );
+                vec.add( Value.create( ports[i].trim() ) );
             }
         }
 
-        if ( !results.getStdout().trim().isEmpty() ) {
+        if ( !results.getStdout().isEmpty() ) {
             response.setFirstChild( "ipAddress", results.getStdout() );
         }
 

@@ -77,7 +77,7 @@ public class DockerExecutor {
 
         BufferedReader reader = new BufferedReader( new InputStreamReader( stream ) );
         while ( ( line = reader.readLine() ) != null ) {
-            result.append(line);
+            result.append(line + System.lineSeparator());
 
             if ( printToConsole ) {
                 if ( isErrorStream ) {
