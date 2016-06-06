@@ -8,10 +8,18 @@ import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
 import joliexx.docker.executor.DockerExecutor;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class JolieDocker extends JavaService {
 
@@ -145,6 +153,80 @@ public class JolieDocker extends JavaService {
         }
 
         return response;
+    }
+
+    /**
+     * We gotta ping the container and wait for it to be available,
+     * else we got a connection refused
+     */
+    @RequestResponse
+    public Value pingForAvailability( Value request ) throws FaultException {
+
+        Value result = Value.create();
+        Boolean printOut = request.getFirstChild("printInfo").boolValue();
+        String ip = request.getFirstChild("ip").strValue();
+        Integer port = request.getFirstChild("port").intValue();
+        Integer tries = request.getFirstChild("attempts").intValue();
+
+        Socket connection;
+
+        int tried = 1;
+
+        for (; tried < tries; ++tried ) {
+
+            if ( printOut ) {
+                System.out.println("#" + tried  + ": Connecting to " + ip + ":" + port);
+            }
+
+            try {
+                connection = new Socket(ip, port);
+                connection.close();
+            } catch ( IOException ioe) {
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {}
+
+                continue;
+            }
+
+            if ( printOut ) {
+                System.out.println("#" + tried  + ": Connected to " + ip + ":" + port);
+            }
+
+            break;
+        }
+
+        if ( tried >= tries ) {
+            if (printOut) {
+                System.out.println( "Failed to connect to " + ip + ":" + port + ". Number of attempts exceeded. " );
+            }
+            result.setFirstChild( "isUp", false );
+        } else {
+            result.setFirstChild( "isUp", true );
+        }
+
+        return result;
+    }
+
+    @RequestResponse
+    public Value getLog( Value value ) throws FaultException {
+
+        Value result = Value.create();
+
+        DockerExecutor.RunResults log = docker.executeDocker( false,
+                "logs", value.strValue()
+        );
+
+        if ( !log.getStdout().isEmpty() ) {
+            result.setFirstChild("log", log.getStdout());
+        }
+
+        if ( !log.getStderr().isEmpty() ) {
+            result.setFirstChild("error", log.getStderr());
+        }
+
+        return result;
     }
 
 }
