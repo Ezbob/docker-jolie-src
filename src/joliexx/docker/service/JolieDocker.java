@@ -174,7 +174,7 @@ public class JolieDocker extends JavaService {
             }
 
             try {
-                connection = new Socket(ip, port);
+                connection = new Socket( ip, port );
                 connection.close();
             } catch ( IOException ioe) {
 
