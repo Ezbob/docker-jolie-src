@@ -205,13 +205,23 @@ public class JolieDocker extends JavaService {
     }
 
     @RequestResponse
-    public Value getLog( Value value ) throws FaultException {
+    public Value getLog( Value request ) throws FaultException {
 
         Value result = Value.create();
 
-        DockerExecutor.RunResults log = docker.executeDocker( false,
-                "logs", value.strValue()
-        );
+        DockerExecutor.RunResults log;
+        if ( request.hasChildren( "tail" ) ) {
+
+            log = docker.executeDocker( false,
+                    "logs", "--tail=" + request.getFirstChild( "tail" ).intValue(), request.strValue()
+            );
+
+        } else {
+
+            log = docker.executeDocker( false,
+                    "logs", request.strValue()
+            );
+        }
 
         if ( !log.getStdout().isEmpty() ) {
             result.setFirstChild("log", log.getStdout());
