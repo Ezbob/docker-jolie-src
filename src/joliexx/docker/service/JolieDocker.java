@@ -4,11 +4,14 @@ import com.sun.istack.internal.NotNull;
 import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
+import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
 import joliexx.docker.executor.DockerExecutor;
 
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class JolieDocker extends JavaService {
 
@@ -113,12 +116,32 @@ public class JolieDocker extends JavaService {
                 containerName
         );
 
-        if ( !results.getStdout().trim().isEmpty() ) {
-            response.setFirstChild("ipAddress", results.getStdout());
+        DockerExecutor.RunResults portResults = docker.executeDocker(false,
+                "inspect",
+                "--format='{{range $p, $conf := .Config.ExposedPorts}} {{$p}} {{end}}'",
+                containerName
+        );
+
+        String[] ports = portResults.getStdout().split("\n");
+        String errors = results.getStderr() + "\n" + portResults.getStderr();
+
+        if ( ports.length > 0 ) {
+            for ( int i = 0; i < ports.length; ++i ) {
+                ports[i] = ports[i].split("/")[0];
+            }
+            ValueVector vec = response.getChildren("ports");
+
+            for ( int i = 0; i < ports.length; i++ ) {
+                vec.add( Value.create( ports[i] ) );
+            }
         }
 
-        if ( !results.getStderr().trim().isEmpty() ) {
-            response.setFirstChild("error", results.getStderr());
+        if ( !results.getStdout().trim().isEmpty() ) {
+            response.setFirstChild( "ipAddress", results.getStdout() );
+        }
+
+        if ( !errors.isEmpty() ) {
+            response.setFirstChild( "error", errors );
         }
 
         return response;
