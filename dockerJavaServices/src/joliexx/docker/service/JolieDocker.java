@@ -1,10 +1,8 @@
 package joliexx.docker.service;
 
 import com.sun.istack.internal.NotNull;
-import jolie.runtime.FaultException;
-import jolie.runtime.JavaService;
-import jolie.runtime.Value;
-import jolie.runtime.ValueVector;
+import jolie.net.ports.OutputPort;
+import jolie.runtime.*;
 import jolie.runtime.embedding.RequestResponse;
 import joliexx.docker.executor.DockerExecutor;
 
@@ -24,6 +22,40 @@ import java.util.concurrent.Future;
 public class JolieDocker extends JavaService {
 
     private static final DockerExecutor docker = new DockerExecutor();
+
+    /*
+     * if tail is zero then the whole log is read
+     */
+    private String[] getLog( String containerName, boolean appendStderr, int tail ) throws FaultException {
+
+        DockerExecutor.RunResults log;
+
+        if ( tail == 0 ) {
+            log = docker.executeDocker( false, "logs", containerName );
+        } else {
+            log = docker.executeDocker( false, "logs", "--tail=" + tail, containerName );
+        }
+
+        StringBuilder out = new StringBuilder();
+
+        if ( !log.getStdout().trim().isEmpty() ) {
+            out.append(log.getStdout());
+        }
+
+        if ( appendStderr && !log.getStderr().trim().isEmpty() ) {
+            out.append(log.getStderr());
+        }
+
+        return out.toString().split( System.lineSeparator() );
+    }
+
+    /*
+     * get the whole log without errors from the execution
+     */
+    private String[] getLog( String containerName ) throws FaultException {
+        return getLog( containerName, false, 0 );
+    }
+
 
     @RequestResponse
     public Value requestSandbox( Value request ) throws FaultException {
@@ -203,6 +235,42 @@ public class JolieDocker extends JavaService {
 
         return result;
     }
+
+    /*
+     * Check the logs for the alive signal
+     */
+    @RequestResponse
+    public Value waitForSignal( Value request ) throws FaultException {
+
+        Value result = Value.create();
+
+        String containerName = request.getFirstChild("containerName").strValue();
+
+        Integer tries = request.hasChildren( "attempts" ) ? request.getFirstChild( "attempts" ).intValue() : 1000;
+        String signal = request.hasChildren( "signalMessage" ) ? request.getFirstChild( "signalMessage" ).strValue() : "ALIVE";
+
+        int tried = 1;
+        boolean isAlive = false;
+
+        for (; tried < tries; ++tried ) {
+
+            String[] logLines = getLog( containerName, false, 1 );
+            for ( String line : logLines ) {
+                if ( line.equals( signal ) ) {
+                    isAlive = true;
+                    break;
+                }
+            }
+            if ( isAlive ) {
+                break;
+            }
+        }
+
+        result.setFirstChild("isAlive", isAlive);
+
+        return result;
+    }
+
 
     @RequestResponse
     public Value getLog( Value request ) throws FaultException {
