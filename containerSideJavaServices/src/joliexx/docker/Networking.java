@@ -5,9 +5,6 @@ import jolie.net.ports.OutputPort;
 import jolie.runtime.*;
 import jolie.runtime.embedding.JolieServiceLoader;
 import jolie.runtime.embedding.RequestResponse;
-import joliex.java.Callback;
-import joliex.java.Service;
-import joliex.java.ServiceFactory;
 
 import java.io.IOException;
 import java.net.*;
@@ -72,33 +69,5 @@ public class Networking extends JavaService {
         return commChannel;
     }
 
-    @RequestResponse
-    public Value signalHost( Value request ) throws FaultException {
-        Value response = Value.create();
-
-        String hostInterface;
-
-        if ( request.hasChildren( "hostInterface" ) ) {
-            hostInterface = request.getChildren( "hostInterface" ).first().strValue();
-        } else {
-            hostInterface = "docker0";
-        }
-        String hostIp = getHostIp( hostInterface );
-
-        Value config = Value.create();
-
-        Service jolieService;
-
-        try {
-            jolieService = new ServiceFactory().create( new URI(hostIp), "sodep", config);
-        } catch ( Exception e ) {
-            throw new FaultException( e );
-        }
-
-        Callback aliveCallBack = null; //TODO put something here!
-        jolieService.callRequestResponse("signal", Value.create("I'm alive!"), aliveCallBack);
-
-        return response;
-    }
 
 }

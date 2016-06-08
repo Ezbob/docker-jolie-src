@@ -4,6 +4,7 @@ import com.sun.istack.internal.NotNull;
 import jolie.net.ports.OutputPort;
 import jolie.runtime.*;
 import jolie.runtime.embedding.RequestResponse;
+import jolie.runtime.typing.TypeCastingException;
 import joliexx.docker.executor.DockerExecutor;
 
 import java.io.IOException;
@@ -33,7 +34,7 @@ public class JolieDocker extends JavaService {
         if ( tail == 0 ) {
             log = docker.executeDocker( false, "logs", containerName );
         } else {
-            log = docker.executeDocker( false, "logs", "--tail=" + tail, containerName );
+            log = docker.executeDocker( false, "logs", "--tail", Integer.toString( tail ), containerName );
         }
 
         StringBuilder out = new StringBuilder();
@@ -244,21 +245,42 @@ public class JolieDocker extends JavaService {
 
         Value result = Value.create();
 
-        String containerName = request.getFirstChild("containerName").strValue();
-
+        String containerName;
+        try {
+            containerName = request.getFirstChild("containerName").strValueStrict();
+        } catch ( TypeCastingException te) {
+            throw new FaultException( new TypeCastingException("containerName required") );
+        }
+        Boolean printOut = request.getFirstChild("printInfo").boolValue();
         Integer tries = request.hasChildren( "attempts" ) ? request.getFirstChild( "attempts" ).intValue() : 1000;
         String signal = request.hasChildren( "signalMessage" ) ? request.getFirstChild( "signalMessage" ).strValue() : "ALIVE";
 
         int tried = 1;
         boolean isAlive = false;
 
-        for (; tried < tries; ++tried ) {
+        if ( printOut ) {
+            System.out.println("Checking for ready signal...");
+        }
 
-            String[] logLines = getLog( containerName, false, 1 );
+        for (; tried < tries; ++tried ) {
+            if ( printOut ) {
+                System.out.println( "Attempt #" + tried );
+            }
+
+            String[] logLines = getLog( containerName, false, 0 );
             for ( String line : logLines ) {
-                if ( line.equals( signal ) ) {
+
+                if ( line.trim().equals( signal ) ) {
+                    if ( printOut ) {
+                        System.out.println( "Signal found." );
+                    }
                     isAlive = true;
                     break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    throw new FaultException( ie );
                 }
             }
             if ( isAlive ) {
@@ -266,7 +288,13 @@ public class JolieDocker extends JavaService {
             }
         }
 
-        result.setFirstChild("isAlive", isAlive);
+        if ( tried >= tries ) {
+            if ( printOut ) {
+                System.out.println("Number of attempts exceeded. Signal not found.");
+            }
+        }
+
+        result.setFirstChild( "isAlive", isAlive );
 
         return result;
     }
