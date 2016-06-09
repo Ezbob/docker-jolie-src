@@ -72,13 +72,13 @@ public class JolieDocker extends JavaService {
         String[] args;
 
         if ( detach ) {
-            args = new String[] { "run", "-id", "--read-only", "--volume", mountPoint + ":/home/jolie:ro",
+            args = new String[] { "run", "-id", "--read-only", "--volume", mountPoint + ":/home/jolie",
                     "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
                     "ezbob/jolie:latest", nameOnly };
 
         } else {
             args = new String[] {
-                    "run", "-i", "--rm", "--read-only", "--volume", mountPoint + ":/home/jolie:ro",
+                    "run", "-i", "--rm", "--read-only", "--volume", mountPoint + ":/home/jolie",
                     "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
                     "ezbob/jolie:latest", nameOnly
             };
@@ -181,60 +181,6 @@ public class JolieDocker extends JavaService {
         }
 
         return response;
-    }
-
-    /**
-     * We gotta ping the container and wait for it to be available,
-     * else we got a connection refused
-     */
-    @RequestResponse
-    public Value pingForAvailability( Value request ) throws FaultException {
-
-        Value result = Value.create();
-        Boolean printOut = request.getFirstChild("printInfo").boolValue();
-        String ip = request.getFirstChild("ip").strValue();
-        Integer port = request.getFirstChild("port").intValue();
-        Integer tries = request.getFirstChild("attempts").intValue();
-
-        Socket connection;
-
-        int tried = 1;
-
-        for (; tried < tries; ++tried ) {
-
-            if ( printOut ) {
-                System.out.println("#" + tried  + ": Connecting to " + ip + ":" + port);
-            }
-
-            try {
-                connection = new Socket( ip, port );
-                connection.close();
-            } catch ( IOException ioe) {
-
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {}
-
-                continue;
-            }
-
-            if ( printOut ) {
-                System.out.println("#" + tried  + ": Connected to " + ip + ":" + port);
-            }
-
-            break;
-        }
-
-        if ( tried >= tries ) {
-            if (printOut) {
-                System.out.println( "Failed to connect to " + ip + ":" + port + ". Number of attempts exceeded. " );
-            }
-            result.setFirstChild( "isUp", false );
-        } else {
-            result.setFirstChild( "isUp", true );
-        }
-
-        return result;
     }
 
     /*
