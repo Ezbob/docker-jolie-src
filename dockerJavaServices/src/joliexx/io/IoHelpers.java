@@ -2,6 +2,7 @@ package joliexx.io;
 
 import javax.activation.MimetypesFileTypeMap;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 class IoHelpers {
 
@@ -19,14 +20,17 @@ class IoHelpers {
         mimeTypesMap.addMimeTypes("application/pdf pdf");
     }
 
-    String getMimeType(File file) {
+    String getMimeType(File file) throws FileNotFoundException {
+        if ( !file.exists() ) {
+            throw new FileNotFoundException();
+        }
         if (mimeTypesMap == null) {
             configMimeTypes();
         }
         return mimeTypesMap.getContentType(file);
     }
 
-    String getMimeType(String filename) {
+    String getMimeType(String filename) throws FileNotFoundException {
         return getMimeType(new File(filename));
     }
 

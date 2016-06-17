@@ -1,35 +1,20 @@
 package joliexx.docker.service;
 
-import com.sun.istack.internal.NotNull;
-import jolie.net.ports.OutputPort;
 import jolie.runtime.*;
 import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
 import joliexx.docker.executor.DockerExecutor;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class JolieDocker extends JavaService {
-
-    private static final DockerExecutor docker = new DockerExecutor();
 
     /*
      * if tail is zero then the whole log is read
      */
-    private String[] getLog( String containerName, boolean appendStderr, int tail ) throws FaultException {
+    private synchronized String[] getLog( String containerName, boolean appendStderr, int tail ) throws FaultException {
 
         DockerExecutor.RunResults log;
+        DockerExecutor docker = new DockerExecutor();
 
         if ( tail == 0 ) {
             log = docker.executeDocker( false, "logs", containerName );
@@ -69,6 +54,7 @@ public class JolieDocker extends JavaService {
         String mountPoint = Paths.get( fileName ).toAbsolutePath().normalize().getParent().toString();
         String nameOnly = Paths.get( fileName ).getFileName().toString();
 
+        DockerExecutor docker = new DockerExecutor();
         String[] args;
 
         if ( detach ) {
@@ -103,6 +89,7 @@ public class JolieDocker extends JavaService {
     public Value haltSandbox( Value request ) throws FaultException {
         Value response = Value.create();
         String containerName = request.strValue();
+        DockerExecutor docker = new DockerExecutor();
 
         Integer exitCode = 0;
         StringBuilder stdout = new StringBuilder();
@@ -145,6 +132,7 @@ public class JolieDocker extends JavaService {
 
         Value response = Value.create();
         String containerName = request.strValue();
+        DockerExecutor docker = new DockerExecutor();
 
         DockerExecutor.RunResults results = docker.executeDocker( false,
                 "inspect",
@@ -181,6 +169,23 @@ public class JolieDocker extends JavaService {
         }
 
         return response;
+    }
+
+    @RequestResponse
+    public Value attach( Value req ) throws FaultException {
+
+        String containerName;
+        try {
+            containerName = req.strValueStrict();
+        } catch (TypeCastingException tpe) {
+            throw new FaultException(tpe);
+        }
+
+        DockerExecutor docker = new DockerExecutor();
+
+        docker.executeDocker(false, "attach", containerName);
+
+        return Value.create();
     }
 
     /*
@@ -252,6 +257,8 @@ public class JolieDocker extends JavaService {
         Value result = Value.create();
 
         DockerExecutor.RunResults log;
+        DockerExecutor docker = new DockerExecutor();
+
         if ( request.hasChildren( "tail" ) ) {
 
             log = docker.executeDocker( false,

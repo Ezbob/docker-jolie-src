@@ -67,7 +67,15 @@ public class FileExtensions extends JavaService {
         } catch ( TypeCastingException tce ) {
             throw new FaultException( tce );
         }
-        response.setValue( helpers.getMimeType( filename ) );
+        String mime;
+
+        try {
+            mime = helpers.getMimeType( filename );
+        } catch ( FileNotFoundException fnfe ) {
+            throw new FaultException(fnfe);
+        }
+
+        response.setValue( mime );
 
         return response;
     }
