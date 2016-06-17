@@ -4,11 +4,14 @@ import jolie.runtime.FaultException;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
 import jolie.runtime.embedding.RequestResponse;
+import jolie.runtime.typing.TypeCastingException;
 
 import java.io.*;
 import java.nio.file.*;
 
 public class FileExtensions extends JavaService {
+
+    IoHelpers helpers = new IoHelpers();
 
     @RequestResponse
     public Value copy( Value request ) throws FaultException {
@@ -51,6 +54,20 @@ public class FileExtensions extends JavaService {
         }
 
         response.setValue( absolutePath.toString() );
+
+        return response;
+    }
+
+    @RequestResponse
+    public Value getMimeType( Value request ) throws FaultException {
+        Value response = Value.create();
+        String filename;
+        try {
+            filename = request.strValueStrict();
+        } catch ( TypeCastingException tce ) {
+            throw new FaultException( tce );
+        }
+        response.setValue( helpers.getMimeType( filename ) );
 
         return response;
     }
