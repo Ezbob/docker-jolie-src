@@ -3,7 +3,7 @@ package joliexx.docker.service;
 import jolie.runtime.*;
 import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
-import joliexx.docker.executor.DockerExecutor;
+import joliexx.executor.DockerExecutor;
 import java.nio.file.Paths;
 
 public class JolieDocker extends JavaService {
@@ -17,9 +17,9 @@ public class JolieDocker extends JavaService {
         DockerExecutor docker = new DockerExecutor();
 
         if ( tail == 0 ) {
-            log = docker.executeDocker( false, "logs", containerName );
+            log = docker.execute( false, "logs", containerName );
         } else {
-            log = docker.executeDocker( false, "logs", "--tail", Integer.toString( tail ), containerName );
+            log = docker.execute( false, "logs", "--tail", Integer.toString( tail ), containerName );
         }
 
         StringBuilder out = new StringBuilder();
@@ -70,7 +70,7 @@ public class JolieDocker extends JavaService {
             };
         }
 
-        DockerExecutor.RunResults results = docker.executeDocker(false, args);
+        DockerExecutor.RunResults results = docker.execute(false, args);
 
         if ( !results.getStderr().isEmpty() ) {
             response.setFirstChild("stderr", results.getStderr());
@@ -96,14 +96,14 @@ public class JolieDocker extends JavaService {
         StringBuilder stderr = new StringBuilder();
         DockerExecutor.RunResults results;
 
-        results = docker.executeDocker(false, "stop", containerName );
+        results = docker.execute(false, "stop", containerName );
 
         stdout.append( results.getStdout().trim() );
         stderr.append( results.getStderr().trim() );
 
         exitCode = results.getExitCode();
 
-        results = docker.executeDocker(false, "rm", containerName );
+        results = docker.execute(false, "rm", containerName );
 
         stdout.append( System.lineSeparator() );
         stdout.append( results.getStdout().trim() );
@@ -134,13 +134,13 @@ public class JolieDocker extends JavaService {
         String containerName = request.strValue();
         DockerExecutor docker = new DockerExecutor();
 
-        DockerExecutor.RunResults results = docker.executeDocker( false,
+        DockerExecutor.RunResults results = docker.execute( false,
                 "inspect",
                 "--format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'",
                 containerName
         );
 
-        DockerExecutor.RunResults portResults = docker.executeDocker(false,
+        DockerExecutor.RunResults portResults = docker.execute(false,
                 "inspect",
                 "--format='{{range $p, $conf := .Config.ExposedPorts}} {{$p}} {{end}}'",
                 containerName
@@ -183,7 +183,7 @@ public class JolieDocker extends JavaService {
 
         DockerExecutor docker = new DockerExecutor();
 
-        docker.executeDocker(false, "attach", containerName);
+        docker.execute( true, "attach", containerName );
 
         return Value.create();
     }
@@ -261,13 +261,13 @@ public class JolieDocker extends JavaService {
 
         if ( request.hasChildren( "tail" ) ) {
 
-            log = docker.executeDocker( false,
+            log = docker.execute( false,
                     "logs", "--tail=" + request.getFirstChild( "tail" ).intValue(), request.strValue()
             );
 
         } else {
 
-            log = docker.executeDocker( false,
+            log = docker.execute( false,
                     "logs", request.strValue()
             );
         }
