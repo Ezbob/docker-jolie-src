@@ -1,4 +1,4 @@
-package joliexx.docker;
+package joliexx.exec;
 
 import jolie.runtime.FaultException;
 import jolie.runtime.Value;
