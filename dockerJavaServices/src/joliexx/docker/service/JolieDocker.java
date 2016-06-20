@@ -139,38 +139,27 @@ public class JolieDocker extends JavaService {
     @RequestResponse
     public Value haltSandbox( Value request ) throws FaultException {
         Value response = Value.create();
-        String containerName = request.strValue();
+        String containerName;
+        try {
+            containerName = request.strValueStrict();
+        } catch (TypeCastingException tce) {
+            throw new FaultException(tce);
+        }
         DockerExecutor docker = new DockerExecutor();
 
         Integer exitCode = 0;
         StringBuilder stdout = new StringBuilder();
         StringBuilder stderr = new StringBuilder();
-        DockerExecutor.RunResults results;
 
-        results = docker.execute(false, "stop", containerName );
+        exitCode += addToResults(docker.execute(false, "stop", containerName ), stdout, stderr);
+        exitCode += addToResults(docker.execute(false, "rm", containerName ), stdout, stderr);
+        exitCode += addToResults(docker.execute(false, "volume", "rm", containerName + "_vol"), stdout, stderr);
 
-        stdout.append( results.getStdout().trim() );
-        stderr.append( results.getStderr().trim() );
-
-        exitCode = results.getExitCode();
-
-        results = docker.execute(false, "rm", containerName );
-
-        stdout.append( System.lineSeparator() );
-        stdout.append( results.getStdout().trim() );
-
-        stderr.append( System.lineSeparator() );
-        stderr.append( results.getStderr().trim() );
-
-        if ( exitCode == 0 && results.getExitCode() != 0 ) {
-            exitCode = results.getExitCode();
-        }
-
-        if ( !stdout.toString().trim().isEmpty() ) {
+        if ( stdout.length() > 0 ) {
             response.setFirstChild("stdout", stdout.toString());
         }
 
-        if ( !stderr.toString().trim().isEmpty() ) {
+        if ( stderr.length() > 0 ) {
             response.setFirstChild("stderr", stderr.toString());
         }
         response.setFirstChild("exitCode", exitCode);
@@ -223,7 +212,7 @@ public class JolieDocker extends JavaService {
     }
 
     @RequestResponse
-    public Value attach( Value req ) throws FaultException {
+    public void attach( Value req ) throws FaultException {
 
         String containerName;
         try {
@@ -236,7 +225,6 @@ public class JolieDocker extends JavaService {
 
         docker.execute( true, "attach", containerName );
 
-        return Value.create();
     }
 
     /*
