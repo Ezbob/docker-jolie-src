@@ -4,9 +4,19 @@ import jolie.runtime.*;
 import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
 import joliexx.executor.DockerExecutor;
+import joliexx.executor.Executor;
+
+import java.io.FileInputStream;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 public class JolieDocker extends JavaService {
+
+    private final String user_name = "jolie";
+    private final String jolie_home = "/usr/lib/jolie";
+    private final String cpu_shares = "256";
+    private final String memory_limit = "256m";
+    private final String user_workspace = "/home/jolie";
 
     /*
      * if tail is zero then the whole log is read
@@ -42,45 +52,86 @@ public class JolieDocker extends JavaService {
         return getLog( containerName, false, 0 );
     }
 
+    private Executor.RunResults createVolume(DockerExecutor executor, String volumeName )
+            throws FaultException {
+        return executor.execute(false, "volume", "create",
+                "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=size=2M,nodev,nosuid,noexec",
+                "--name", volumeName);
+    }
+
+    private Executor.RunResults copyToContainer(DockerExecutor executor, String containerName, String src)
+            throws FaultException {
+        return executor.execute(false, "cp", src, containerName + ":" + user_workspace );
+    }
+
+    private Executor.RunResults executeJolie(DockerExecutor executor, String containerName, String input) throws FaultException {
+        return executor.execute( false, "exec", containerName, "jolie", input);
+    }
+
+    private Integer addToResults(Executor.RunResults results, StringBuilder stdout, StringBuilder stderr) {
+        stderr.append(results.getStderr()).append(System.lineSeparator());
+        stdout.append(results.getStdout()).append(System.lineSeparator());
+        return results.getExitCode();
+    }
 
     @RequestResponse
     public Value requestSandbox( Value request ) throws FaultException {
         Value response = Value.create();
-        String fileName = request.getFirstChild( "filename" ).strValue();
-        String containerName = request.getFirstChild( "containerName" ).strValue();
-        Integer port = request.getFirstChild( "port" ).intValue();
-        Boolean detach = request.getFirstChild( "detach" ).boolValue();
+        String file;
+        String containerName;
+        Integer port, exitCode;
 
-        String mountPoint = Paths.get( fileName ).toAbsolutePath().normalize().getParent().toString();
-        String nameOnly = Paths.get( fileName ).getFileName().toString();
+        exitCode = 0;
+        StringBuilder stdout = new StringBuilder();
+        StringBuilder stderr = new StringBuilder();
+
+        try {
+            file = request.getFirstChild( "filename" ).strValueStrict();
+            containerName = request.getFirstChild( "containerName" ).strValueStrict();
+            port = request.getFirstChild( "port" ).intValueStrict();
+        } catch (TypeCastingException tce) {
+            throw new FaultException(tce);
+        }
+
+        String copyFile = Paths.get( file ).toAbsolutePath().normalize().toString();
+        String nameOnly = Paths.get( file ).getFileName().toString();
 
         DockerExecutor docker = new DockerExecutor();
         String[] args;
+        String volumeName = containerName + "_vol";
 
-        if ( detach ) {
-            args = new String[] { "run", "-id", "--read-only", "--volume", mountPoint + ":/home/jolie",
-                    "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
-                    "ezbob/jolie:latest", nameOnly };
+        // create a new tmpfs volume to hold our data
+        exitCode += addToResults( createVolume(docker, volumeName), stdout, stderr );
 
-        } else {
-            args = new String[] {
-                    "run", "-i", "--rm", "--read-only", "--volume", mountPoint + ":/home/jolie",
-                    "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
-                    "ezbob/jolie:latest", nameOnly
-            };
+        args = new String[] { "run", "-id", "--read-only", "--volume", volumeName + ":" + user_workspace,
+                "-m", memory_limit, "--cpu-shares", cpu_shares, "--expose", port.toString() , "--name", containerName,
+                "-u", user_name, "-w", user_workspace, "-e", "JOLIE_HOME=" + jolie_home,
+                "ezbob/ubjoliebase:latest"
+        };
+
+        // create a new container
+        exitCode += addToResults( docker.execute( false, args ), stdout, stderr );
+
+        // copy the execution file over
+        exitCode += addToResults( copyToContainer( docker, containerName, copyFile ), stdout, stderr );
+
+        // copy the libraries over to the workspace if it's specified
+        if ( request.hasChildren("lib") ) {
+            exitCode += addToResults( copyToContainer(docker, containerName, request.getFirstChild("lib").strValue()), stdout, stderr );
         }
 
-        DockerExecutor.RunResults results = docker.execute(false, args);
+        // finally execute jolie in the container
+        exitCode += addToResults( executeJolie( docker, containerName, nameOnly ), stdout, stderr);
 
-        if ( !results.getStderr().isEmpty() ) {
-            response.setFirstChild("stderr", results.getStderr());
+        if ( stdout.length() > 0 ) {
+            response.setFirstChild("stderr", stdout.toString());
         }
 
-        if ( !results.getStdout().isEmpty() ) {
-            response.setFirstChild("stdout", results.getStdout());
+        if ( stderr.length() > 0 ) {
+            response.setFirstChild("stdout", stderr.toString());
         }
 
-        response.setFirstChild("exitCode", results.getExitCode());
+        response.setFirstChild("exitCode", exitCode);
 
         return response;
     }

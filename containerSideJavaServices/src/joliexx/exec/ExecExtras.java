@@ -1,13 +1,14 @@
 package joliexx.exec;
 
 import jolie.runtime.FaultException;
+import jolie.runtime.JavaService;
 import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
 import joliexx.executor.TimeOutExecutor;
 
-public class ExecExtras {
+public class ExecExtras extends JavaService {
 
     @RequestResponse
     public Value timeOutExec(Value request ) throws FaultException {

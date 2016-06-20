@@ -41,9 +41,10 @@ public abstract class Executor {
         public Boolean hasStderr() {
             return !this.stderr.isEmpty();
         }
+
     }
 
-    String[] prependArg(String arg, String[] args) {
+    public String[] prependArg(String arg, String[] args) {
         String[] extendedArgs = new String[args.length + 1];
 
         System.arraycopy(args, 0, extendedArgs, 1, args.length);
@@ -52,7 +53,7 @@ public abstract class Executor {
         return extendedArgs;
     }
 
-    String readStream(@NotNull InputStream stream, Boolean isErrorStream, Boolean printToConsole) throws IOException {
+    public String readStream(@NotNull InputStream stream, Boolean isErrorStream, Boolean printToConsole) throws IOException {
         StringBuilder result = new StringBuilder();
         String line;
 

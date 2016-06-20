@@ -20,7 +20,6 @@ public class DockerExecutor extends Executor {
             ).start();
 
             try {
-
                 return new RunResults( readStream(process.getInputStream(), false, printToConsole ),
                         readStream( process.getErrorStream(), true, printToConsole), process.waitFor() );
 
