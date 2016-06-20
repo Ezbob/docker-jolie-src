@@ -1,4 +1,4 @@
-package joliexx.exec;
+package joliexx.docker;
 
 import jolie.runtime.FaultException;
 import jolie.runtime.Value;
@@ -7,11 +7,10 @@ import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
 import joliexx.executor.TimeOutExecutor;
 
-
 public class ExecExtras {
 
     @RequestResponse
-    public Value timedExec( Value request ) throws FaultException {
+    public Value timeOutExec(Value request ) throws FaultException {
         Value response = Value.create();
 
         ValueVector args = null;
@@ -23,7 +22,7 @@ public class ExecExtras {
             args = request.getChildren( "args" );
         }
 
-        stdoutPrint = request.hasChildren( "stdoutPrintOut" ) && request.getFirstChild( "stdoutPrintOut" ).boolValue();
+        stdoutPrint = request.hasChildren( "printOut" ) && request.getFirstChild( "printOut" ).boolValue();
 
         try {
             program = request.strValueStrict();
@@ -32,7 +31,7 @@ public class ExecExtras {
             throw new FaultException(tce);
         }
 
-        TimeOutExecutor timeOutExecutor = new TimeOutExecutor();
+        joliexx.executor.TimeOutExecutor timeOutExecutor = new TimeOutExecutor();
         timeOutExecutor.setTimeOut( timedOut );
         TimeOutExecutor.RunResults programResults;
 
