@@ -5,6 +5,7 @@ import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.embedding.RequestResponse;
 import jolie.runtime.typing.TypeCastingException;
+import joliexx.executor.TimeOutExecutor;
 
 
 public class ExecExtras {
@@ -13,28 +14,51 @@ public class ExecExtras {
     public Value timedExec( Value request ) throws FaultException {
         Value response = Value.create();
 
-        ValueVector args;
-        String program, timeUnit;
-        Boolean waitFor, stdoutPrint;
+        ValueVector args = null;
+        String program;
+        Boolean stdoutPrint;
         Long timedOut;
-
-        if ( request.hasChildren( "timedOut" ) ) {
-            timedOut = request.getFirstChild( "timedOut" ).longValue();
-        }
 
         if ( request.hasChildren( "args" ) ) {
             args = request.getChildren( "args" );
         }
 
-        waitFor = request.getFirstChild( "waitFor" ).boolValue();
-        stdoutPrint = request.getFirstChild( "stdoutPrintOut" ).boolValue();
+        stdoutPrint = request.hasChildren( "stdoutPrintOut" ) && request.getFirstChild( "stdoutPrintOut" ).boolValue();
 
         try {
             program = request.strValueStrict();
-        } catch ( TypeCastingException tce ) {
-            throw new FaultException( tce );
+            timedOut = request.getFirstChild( "timedOut" ).longValueStrict();
+        } catch (TypeCastingException tce) {
+            throw new FaultException(tce);
         }
 
+        TimeOutExecutor timeOutExecutor = new TimeOutExecutor();
+        timeOutExecutor.setTimeOut( timedOut );
+        TimeOutExecutor.RunResults programResults;
+
+        if ( args == null ) {
+            programResults = timeOutExecutor.execute( program, stdoutPrint );
+        } else {
+            String[] programArguments = new String[args.size()];
+            for (int i = 0; i < args.size(); i++) {
+                try {
+                    programArguments[i] = args.get(i).strValueStrict();
+                } catch (TypeCastingException tce) {
+                    throw new FaultException(tce);
+                }
+            }
+            programResults = timeOutExecutor.execute(program, stdoutPrint, programArguments);
+        }
+
+        if ( programResults.hasStdout() ) {
+            response.setFirstChild( "stdout", programResults.getStdout() );
+        }
+
+        if ( programResults.hasStderr() ) {
+            response.setFirstChild( "stderr", programResults.getStderr() );
+        }
+
+        response.setFirstChild( "exitCode", programResults.getExitCode() );
 
         return response;
     }

@@ -11,7 +11,7 @@ import java.nio.file.*;
 
 public class FileExtensions extends JavaService {
 
-    IoHelpers helpers = new IoHelpers();
+    private IoHelpers helpers = new IoHelpers();
 
     @RequestResponse
     public Value copy( Value request ) throws FaultException {

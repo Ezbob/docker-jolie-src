@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 
-public class Executor {
+public abstract class Executor {
 
     public final class RunResults {
         private final String stdout;
@@ -32,6 +32,14 @@ public class Executor {
 
         public String getStdout() {
             return stdout;
+        }
+
+        public Boolean hasStdout() {
+            return !this.stdout.isEmpty();
+        }
+
+        public Boolean hasStderr() {
+            return !this.stderr.isEmpty();
         }
     }
 
@@ -63,20 +71,5 @@ public class Executor {
         return result.toString().trim();
     }
 
-    public RunResults execute(Boolean printToConsole, String... args) throws FaultException {
-
-        try {
-            Process process = new ProcessBuilder( args ).start();
-
-            try {
-                return new RunResults( readStream(process.getInputStream(), false, printToConsole ),
-                        readStream( process.getErrorStream(), true, printToConsole), process.waitFor() );
-
-            } catch ( InterruptedException interruptedException ) {
-                throw new FaultException(interruptedException);
-            }
-        } catch (IOException ioException) {
-            throw new FaultException(ioException);
-        }
-    }
+    abstract public RunResults execute(Boolean printToConsole, String... args) throws FaultException;
 }

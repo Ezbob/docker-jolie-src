@@ -6,7 +6,7 @@ import java.io.FileNotFoundException;
 
 class IoHelpers {
 
-    MimetypesFileTypeMap mimeTypesMap = null;
+    private MimetypesFileTypeMap mimeTypesMap = null;
 
     private void configMimeTypes() {
         mimeTypesMap = new MimetypesFileTypeMap();
