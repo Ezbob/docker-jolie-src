@@ -28,6 +28,8 @@ class IoHelpers {
         mimeTypesMap.addMimeTypes("application/java-serialized-object ser");
         mimeTypesMap.addMimeTypes("application/x-java-jnlp-file jnlp");
         mimeTypesMap.addMimeTypes("application/x-latex latex tex");
+        mimeTypesMap.addMimeTypes("application/x-jolie-source ol");
+        mimeTypesMap.addMimeTypes("application/x-jolie-interface iol");
     }
 
     String getMimeType(File file) throws FileNotFoundException {
