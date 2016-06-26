@@ -59,13 +59,13 @@ public class JolieDocker extends JavaService {
 
         if ( detach ) {
             args = new String[] { "run", "-id", "--read-only", "--volume", mountPoint + ":/home/jolie",
-                    "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
+                    "-m", "256m", "--cpu-shares", "256", "--cpuset-cpus", "0,1", "--expose", port.toString() , "--name", containerName,
                     "ezbob/jolie:latest", nameOnly };
 
         } else {
             args = new String[] {
                     "run", "-i", "--rm", "--read-only", "--volume", mountPoint + ":/home/jolie",
-                    "-m", "256m", "--cpu-shares", "256", "--expose", port.toString() , "--name", containerName,
+                    "-m", "256m", "--cpu-shares", "256", "--cpuset-cpus", "0,1", "--expose", port.toString() , "--name", containerName,
                     "ezbob/jolie:latest", nameOnly
             };
         }
